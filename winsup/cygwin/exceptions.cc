@@ -936,7 +936,7 @@ _cygtls::interrupt_now (CONTEXT *cx, siginfo_t& si, void *handler,
     interrupted = false;
   else
     {
-#ifdef __x86_64__
+#ifdef __x86_64__xxxx
       /* When the Rip points to an instruction that causes an exception,
 	 modifying Rip and calling ResumeThread() may sometimes result in
 	 a crash. To prevent this, advance execution by a single instruction
