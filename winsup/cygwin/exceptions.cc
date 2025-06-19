@@ -653,8 +653,11 @@ exception::handle (EXCEPTION_RECORD *e, exception_list *frame, CONTEXT *in,
   static int NO_COPY debugging = 0;
   _cygtls& me = _my_tls;
 
+  if (e->ExceptionCode == (DWORD) STATUS_SINGLE_STEP)
+    system_printf("SINGLE STEP 111111111111111111\r");
   if (me.suspend_on_exception)
     {
+      system_printf("Suspend on exception: %d\r", e->ExceptionCode);
       SuspendThread (GetCurrentThread ());
       if (e->ExceptionCode == (DWORD) STATUS_SINGLE_STEP)
 	return ExceptionContinueExecution;
@@ -936,7 +939,7 @@ _cygtls::interrupt_now (CONTEXT *cx, siginfo_t& si, void *handler,
     interrupted = false;
   else
     {
-#ifdef __x86_64__xxxx
+#ifdef __x86_64__
       /* When the Rip points to an instruction that causes an exception,
 	 modifying Rip and calling ResumeThread() may sometimes result in
 	 a crash. To prevent this, advance execution by a single instruction
