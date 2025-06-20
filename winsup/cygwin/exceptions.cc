@@ -653,11 +653,8 @@ exception::handle (EXCEPTION_RECORD *e, exception_list *frame, CONTEXT *in,
   static int NO_COPY debugging = 0;
   _cygtls& me = _my_tls;
 
-  if (e->ExceptionCode == (DWORD) STATUS_SINGLE_STEP)
-    system_printf("SINGLE STEP 111111111111111111\r");
   if (me.suspend_on_exception)
     {
-      system_printf("Suspend on exception: %d\r", e->ExceptionCode);
       SuspendThread (GetCurrentThread ());
       if (e->ExceptionCode == (DWORD) STATUS_SINGLE_STEP)
 	return ExceptionContinueExecution;
@@ -966,6 +963,7 @@ _cygtls::interrupt_now (CONTEXT *cx, siginfo_t& si, void *handler,
 	    }
 	  while (NT_SUCCESS (status) && cnt == 0);
 	  GetThreadContext (*this, cx);
+	  cx->EFlags &= ~0x100; /* Clear TF (setup single step execution) */
 	  suspend_on_exception = false;
 	}
 #endif
