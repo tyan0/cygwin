@@ -949,17 +949,23 @@ _cygtls::interrupt_now (CONTEXT *cx, siginfo_t& si, void *handler,
 	 thread can resume execution without unexpected crashes.  */
       if (!inside_kernel (cx, true))
 	{
-	  cx->EFlags |= 0x100; /* Set TF (setup single step execution) */
+	  //cx->EFlags |= 0x100; /* Set TF (setup single step execution) */
 	  SetThreadContext (*this, cx);
 	  suspend_on_exception = true;
 	  ResumeThread (*this);
 	  ULONG cnt = 0;
+	  int loop = 0;
 	  NTSTATUS status;
 	  do
 	    {
 	      yield ();
 	      status = NtQueryInformationThread (*this, ThreadSuspendCount,
 						 &cnt, sizeof (cnt), NULL);
+	      if (loop++ > 1000)
+		{
+		  SuspendThread (*this);
+		  break;
+		}
 	    }
 	  while (NT_SUCCESS (status) && cnt == 0);
 	  GetThreadContext (*this, cx);
