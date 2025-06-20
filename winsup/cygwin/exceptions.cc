@@ -655,7 +655,9 @@ exception::handle (EXCEPTION_RECORD *e, exception_list *frame, CONTEXT *in,
 
   if (me.suspend_on_exception)
     {
-      SuspendThread (GetCurrentThread ());
+      me.wait_for_suspend = true;
+      while (me.wait_for_suspend)
+	yield ();
       if (e->ExceptionCode == (DWORD) STATUS_SINGLE_STEP)
 	return ExceptionContinueExecution;
     }
@@ -949,28 +951,17 @@ _cygtls::interrupt_now (CONTEXT *cx, siginfo_t& si, void *handler,
 	 thread can resume execution without unexpected crashes.  */
       if (!inside_kernel (cx, true))
 	{
-	  //cx->EFlags |= 0x100; /* Set TF (setup single step execution) */
+	  cx->EFlags |= 0x100; /* Set TF (setup single step execution) */
 	  SetThreadContext (*this, cx);
 	  suspend_on_exception = true;
+	  wait_for_suspend = false;
 	  ResumeThread (*this);
-	  ULONG cnt = 0;
-	  int loop = 0;
-	  NTSTATUS status;
-	  do
-	    {
-	      yield ();
-	      status = NtQueryInformationThread (*this, ThreadSuspendCount,
-						 &cnt, sizeof (cnt), NULL);
-	      if (loop++ > 1000)
-		{
-		  SuspendThread (*this);
-		  break;
-		}
-	    }
-	  while (NT_SUCCESS (status) && cnt == 0);
-	  GetThreadContext (*this, cx);
-	  cx->EFlags &= ~0x100; /* Clear TF (setup single step execution) */
+	  while (!wait_for_suspend)
+	    yield ();
+	  SuspendThread (*this);
+	  wait_for_suspend = false;
 	  suspend_on_exception = false;
+	  GetThreadContext (*this, cx);
 	}
 #endif
       DWORD64 &ip = cx->_CX_instPtr;
